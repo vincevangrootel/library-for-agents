@@ -1,6 +1,6 @@
 # Stage 2: Parse
 
-Scripts come from the factory skill, see `_config/factory.md`.
+Scripts come from the library-for-agents tools repo, see `_config/factory.md`.
 
 Goal: a verbatim, id-stamped text layer that provably equals the book.
 
