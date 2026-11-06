@@ -1,0 +1,7 @@
+__pycache__/
+*.pyc
+.venv/
+.env
+# a working library is yours and stays out of this repo
+/lib/
+/index/
