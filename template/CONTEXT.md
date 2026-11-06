@@ -15,7 +15,7 @@ Work through the stages in order. Each stage folder has its own `CONTEXT.md` con
 | 3 Enrich | `stages/03-enrich/` | `03-enrich/` passes the enrichment gate |
 | 4 Assemble | `stages/04-assemble/` | `04-assemble/`, `CATALOG.md` updated |
 | 5 Verify | `stages/05-verify/` | `05-verify/REPORT.md`, status signed off |
-The scripts live in the `book-to-library` skill, see `_config/factory.md` for where. Input files wait in `inbox/`.
+The scripts live in the library-for-agents tools repo, see `_config/factory.md` for where. Input files wait in `inbox/`.
 
 ## Folder map
 - `books/<slug>/` one folder per book, numbered subfolders follow the stages

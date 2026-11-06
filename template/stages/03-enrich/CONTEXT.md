@@ -1,6 +1,6 @@
 # Stage 3: Enrich
 
-Scripts come from the factory skill, see `_config/factory.md`.
+Scripts come from the library-for-agents tools repo, see `_config/factory.md`.
 
 Goal: navigation aids written by an AI reader, every claim anchored to paragraph ids.
 

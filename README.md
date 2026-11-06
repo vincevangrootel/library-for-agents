@@ -1,78 +1,108 @@
-# library-for-agents
+<div align="center">
 
-Turn the EPUB books you own into a library that AI agents can search and cite: clean Markdown per chapter, paragraph embeddings, audited atomic claims, and a quality gate that tells you whether a book is ready.
+# 📚 library-for-agents
 
-This repository holds the **method and tools only**. You bring your own legally owned books. The MIT licence covers this code and documentation, not any book you process.
+**Turn the EPUB books you own into a library your AI agents can search and cite.**
+
+Clean Markdown · paragraph embeddings · audited atoms · a quality gate
+
+[MIT licence](LICENSE) · Python 3.10+ · about a cent per book
+
+</div>
+
+---
+
+## 🤖 Just want an agent to do it?
+
+Give your agent this repository and say:
+
+> *Read `AGENTS.md` and `SETUP.md` in this repo and set up a library for me.*
+
+It will interview you (where to save it, Git or plain folder, where your books are), show a plan and a cost estimate, and only then build. Nothing is created before you say yes.
 
 ## What you get
 
-For each book:
+For every book:
 
-1. **Text layer**: chapters as Markdown with stable paragraph ids, figures extracted, source EPUB hash-pinned and checked for fidelity (`ingest/`).
-2. **Embeddings**: one vector per paragraph (`tools/build_embeddings.py`).
-3. **Atoms**: short, self-contained claims, each tied to the paragraphs it came from, then audited against the source (`tools/extract_atoms.py`, `tools/audit_atoms.py`).
-4. **Links**: related atoms across books (`tools/link_atoms.py`, `tools/link_filter.py`).
-5. **Gate**: one command that checks all of the above and reports PASS, WARN or FAIL per stage (`tools/book_gate.py`).
-6. **Search**: `tools/search.py "your question"` returns the best-matching paragraphs with ids.
+| Step | Result | Tool |
+|---|---|---|
+| 1. Text | Chapters as Markdown with stable paragraph ids, checked against the source EPUB | `ingest/` |
+| 2. Embeddings | One vector per paragraph, so search finds meaning, not just words | `tools/build_embeddings.py` |
+| 3. Atoms *(optional)* | Short self-contained claims, each tied to its source paragraphs and audited | `tools/extract_atoms.py`, `tools/audit_atoms.py` |
+| 4. Links *(optional)* | Related ideas connected across books | `tools/link_atoms.py` |
+| 5. Gate | One command that says PASS, WARN or FAIL per stage | `tools/book_gate.py` |
+| 6. Search | Ask a question, get the best paragraphs with ids | `tools/search.py` |
 
-Design notes: [docs/ATOMS.md](docs/ATOMS.md), [docs/GATE.md](docs/GATE.md). Stage contracts and conventions ship in `template/` and are copied into your library.
+## How it is organised
+
+Two separate places:
+
+- **This repo** holds the tools only. No books, ever.
+- **Your library** is a folder you choose. Books, text, embeddings and atoms live there. It can be a plain folder or a private Git repo.
+
+Full picture, including backup and what leaves your machine: [docs/WHERE-THINGS-LIVE.md](docs/WHERE-THINGS-LIVE.md).
 
 ## Requirements
 
 - Python 3.10+
-- An [OpenRouter](https://openrouter.ai) API key in `OPENROUTER_API_KEY` (embeddings and atom extraction)
-- `pip install -r requirements.txt`
+- An [OpenRouter](https://openrouter.ai) API key in `OPENROUTER_API_KEY` (used for embeddings and atoms)
+- Your own legally owned books as `.epub` files
 
-## Quick start (about 5 minutes, about one cent)
+## Quick start with a synthetic book (about 5 minutes, about one cent)
 
 ```bash
 git clone https://github.com/vincevangrootel/library-for-agents && cd library-for-agents
 python3 -m venv .venv && . .venv/bin/activate && pip install -r requirements.txt
-export OPENROUTER_API_KEY=...           # your own key
+export OPENROUTER_API_KEY=...                    # your own key
 
-# 1. a synthetic example book (original text, no rights issues)
+# an original example book, no rights issues
 python3 example/make_example_epub.py example/field-guide-to-keeping-notes.epub
 
-# 2. scaffold a library next to this repo and work inside it
-python3 ingest/scaffold_library.py ../my-library && cd ../my-library
-export LIBRARY_ROOT=$PWD LIBRARY_INDEX=$PWD/index
-TOOLS=../library-for-agents
+# create a library folder next to this repo and step inside
+python3 scripts/setup_library.py ../my-library --books example
+cd ../my-library && . .library.env
+T=$LIBRARY_TOOLS
 
-# 3. ingest: init, resolve the title page, build, verify
-python3 $TOOLS/ingest/parse_epub.py init $TOOLS/example/field-guide-to-keeping-notes.epub books/example
-python3 $TOOLS/example/prep_book_yaml.py books/example
-python3 $TOOLS/ingest/parse_epub.py build books/example
-python3 $TOOLS/ingest/verify_text.py books/example --report 05-verify/text.json
+# text
+python3 $T/ingest/parse_epub.py init inbox/field-guide-to-keeping-notes.epub books/example
+python3 $T/example/prep_book_yaml.py books/example     # real books: review book.yaml by hand
+python3 $T/ingest/parse_epub.py build books/example
+python3 $T/ingest/verify_text.py books/example --report 05-verify/text.json
 
-# 4. embeddings, atoms, and the gate
-python3 $TOOLS/tools/build_embeddings.py example
-python3 $TOOLS/tools/extract_atoms.py example
-python3 $TOOLS/tools/book_gate.py example --no-publish
+# embeddings, atoms, check
+python3 $T/tools/build_embeddings.py example
+python3 $T/tools/extract_atoms.py example
+python3 $T/tools/book_gate.py example --no-publish
 
-# 5. ask it something
-python3 $TOOLS/tools/search.py "why do note collections fail"
+# ask something
+python3 $T/tools/search.py "why do note collections fail"
 ```
 
-Expected: the gate ends in `GATE SUMMARY  example WARN` (stages 2 to 5 PASS). The warnings are optional metadata: cover image, ISBN, and a Calibre id. A fully filled-in book reaches PASS.
+Expected: gate summary `WARN` (stages 2 to 5 PASS). The warnings are optional metadata: cover, ISBN, Calibre id.
 
-Tools read `LIBRARY_ROOT` (default: current directory) and `LIBRARY_INDEX` (default: `$LIBRARY_ROOT/index`). Real books need a human look at `book.yaml` after `init`: which documents are chapters, front or back matter, and which images are decorative. `ingest/parse_epub.py inspect BOOK.epub` shows what the EPUB contains first.
+For real books, run `python3 $T/ingest/parse_epub.py inspect BOOK.epub` first, then check `book.yaml` after `init`: which documents are chapters, front or back matter, and which images are decorative.
 
-## Other settings
+## Settings
 
-- `ATOM_TIER=flash|sonnet`: cheaper or stronger atom extraction.
-- **File storage (optional).** Embeddings and atoms are large and derived from your books, so they are not kept in Git. If you want a copy somewhere else, for example so other machines or agents can read it, set `LIBRARY_PUBLISH_REMOTE` to a storage location (any cloud drive, object store or network disk supported by [rclone](https://rclone.org)). The gate then copies the files there and checks that the sizes match. If you only use one machine, ignore it: the stage is skipped (N/A). `--no-publish` skips it explicitly.
-- Embeddings and atoms are derived from your books. Treat them as private unless you hold the rights.
+| Variable | Meaning |
+|---|---|
+| `OPENROUTER_API_KEY` | Required for embeddings and atoms |
+| `LIBRARY_ROOT` / `LIBRARY_INDEX` | Library folder and index folder (written to `.library.env`) |
+| `ATOM_TIER` | `flash` (cheaper) or `sonnet` (stronger) atom extraction |
+| `LIBRARY_PUBLISH_REMOTE` | Optional file storage: copy embeddings, atoms and links to a storage location you choose so other machines or agents can use them. Skip it on a single machine. |
 
-## Layout
+## Repository layout
 
 ```
-ingest/     EPUB to verified Markdown (parse, verify, assemble, check)
-tools/      embeddings, atoms, audit, links, gate, search
-template/   library scaffold: stage contracts, conventions, agent instructions
-example/    synthetic EPUB generator and the helper used in the quick start
-docs/       how atoms and the gate work
+AGENTS.md  SETUP.md   start here if you are an agent
+scripts/              setup_library.py creates your library folder
+ingest/               EPUB to verified Markdown
+tools/                embeddings, atoms, audit, links, gate, search
+template/             what a new library starts from
+example/              synthetic book generator
+docs/                 where things live, atoms, the gate
 ```
 
 ## Licence
 
-MIT, see [LICENSE](LICENSE). Books you process remain under their own rights.
+MIT, see [LICENSE](LICENSE). It covers this code and documentation only. Books you process stay under their own rights; keep text, embeddings and atoms derived from them private unless you hold those rights.

@@ -1,6 +1,6 @@
 # Stage 1: Ingest
 
-Scripts come from the factory skill, see `_config/factory.md`.
+Scripts come from the library-for-agents tools repo, see `_config/factory.md`.
 
 Goal: get the EPUB under `books/<slug>/01-source/` and a reviewed `book.yaml`.
 
