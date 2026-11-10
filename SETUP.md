@@ -7,10 +7,7 @@ Goal: end with a library folder that holds the user's books and lets them (or an
 Ask one question at a time.
 
 1. **Where should the library live?** Suggest a folder outside this repo, for example `~/library`. It will hold the books and everything derived from them.
-2. **Should that folder be a Git repository?** Explain the trade-off in one line each:
-   - *Git repository, private*: history, easy backup and sync, can be shared with a team. Keep it private. Embeddings are large, so Git LFS or keeping `index/` out of Git is wise.
-   - *Plain folder*: simplest. Back it up yourself.
-   Recommend a plain folder if unsure; Git can be added later with `git init`.
+2. **Should that folder be a Git repository?** Recommend yes, private. Each book is processed once, and the embeddings and atoms cost money to build, so versioning and backing them up is worth it. Everything is tracked: books, text, embeddings, atoms. Ask where the private remote should be (GitHub, a self-hosted server). Mention the size caveat: one book's embeddings are a few MB, fine for dozens of books; past roughly 100 books suggest Git LFS for `index/`, or the optional file-storage copy. If they decline Git, a plain folder works and they must arrange their own backup. Never make the repo public.
 3. **Where are the books?** A folder of `.epub` files. Only EPUB is supported. If they are in another format (for example PDF or Kindle), say so, and ask if they can convert them first (Calibre does this).
 4. **Do they have an OpenRouter API key?** It is needed for embeddings and atoms. Ask them to put it in the `OPENROUTER_API_KEY` environment variable. Do not ask them to paste it into chat if you can avoid it.
 5. **Extra copy elsewhere?** Optional. Do they want the embeddings and atoms copied to a storage location (cloud drive, network disk) so other machines or agents can use them? If yes, they need an [rclone](https://rclone.org) remote; set `LIBRARY_PUBLISH_REMOTE`. If no, skip it.
@@ -24,12 +21,12 @@ cd ~/tools/library-for-agents && python3 -m venv .venv && . .venv/bin/activate &
 python3 scripts/setup_library.py ~/library --books ~/Downloads/my-epubs      # creates the library folder
 ```
 
-`setup_library.py` creates the folder, copies the library scaffold into it, copies the EPUBs into `inbox/`, and writes `.library.env` with the paths. It never overwrites a non-empty folder.
+`setup_library.py` creates the folder, runs `git init` (skip with `--no-git`), copies the library scaffold into it, copies the EPUBs into `inbox/`, and writes `.library.env` with the paths. It never overwrites a non-empty folder.
 
 ## 3. Show the plan, then get a yes
 
 Tell the user, in plain words:
-- the library folder, and whether it is a Git repo
+- the library folder, and the Git repo (private remote, if any)
 - the number of EPUBs found and the stages that will run (text, embeddings, optional atoms, gate)
 - a cost estimate: embeddings cost well under a cent per book; atoms roughly a cent or two per book
 - that nothing leaves their machine except the text sent to OpenRouter for embeddings and atoms, and the optional storage copy if they chose it

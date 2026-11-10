@@ -24,17 +24,13 @@ my-library/
   .library.env      the paths used by the tools
 ```
 
-## Is it a Git repository?
+## Recommended: a private Git repository
 
-Your choice; the tools work the same either way.
+Each book is processed once, and the embeddings and atoms cost money to build. Keep the whole library, including `index/`, in a private Git repository: history, undo, and a backup on the remote. `scripts/setup_library.py` runs `git init` for you (skip with `--no-git`). Add a private remote and push.
 
-| | Plain folder | Private Git repository |
-|---|---|---|
-| Setup | nothing | `git init` in the folder |
-| History / undo | no | yes |
-| Sharing with a team | copy the folder | push to a private remote |
-| Backup | yours to arrange | the remote is a backup |
-| Watch out | easy to lose | keep it private; `index/` is big, so keep it out of Git or use Git LFS |
+Size: one book's embeddings are a few MB. Dozens of books are fine in plain Git. Past roughly 100 books the repo gets heavy; then use Git LFS for `index/`, or keep `index/` out of Git and use the optional file storage copy below.
+
+A plain folder also works (no history, you arrange your own backup).
 
 Never make a library public unless you hold the rights to every book in it. The text, embeddings and atoms are all derived from the books.
 
