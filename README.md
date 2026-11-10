@@ -18,7 +18,7 @@ Give your agent this repository and say:
 
 > *Read `AGENTS.md` and `SETUP.md` in this repo and set up a library for me.*
 
-It will interview you (where to save it, Git or plain folder, where your books are), show a plan and a cost estimate, and only then build. Nothing is created before you say yes.
+It will interview you (where to save it, which private Git remote, where your books are), show a plan and a cost estimate, and only then build. Nothing is created before you say yes.
 
 ## What you get
 
@@ -38,7 +38,7 @@ For every book:
 Two separate places:
 
 - **This repo** holds the tools only. No books, ever.
-- **Your library** is a folder you choose. Books, text, embeddings and atoms live there. It can be a plain folder or a private Git repo.
+- **Your library** is a folder you choose. Books, text, embeddings and atoms live there. It is meant to be a private Git repo, so books and everything built from them are versioned and backed up.
 
 Full picture, including backup and what leaves your machine: [docs/WHERE-THINGS-LIVE.md](docs/WHERE-THINGS-LIVE.md).
 
@@ -59,7 +59,7 @@ export OPENROUTER_API_KEY=...                    # your own key
 python3 example/make_example_epub.py example/field-guide-to-keeping-notes.epub
 
 # create a library folder next to this repo and step inside
-python3 scripts/setup_library.py ../my-library --books example
+python3 scripts/setup_library.py ../my-library --books example     # also runs git init
 cd ../my-library && . .library.env
 T=$LIBRARY_TOOLS
 
