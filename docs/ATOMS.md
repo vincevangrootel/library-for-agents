@@ -43,16 +43,9 @@ There is no minimum atoms-per-words density. Density is a by-product of what the
 - WARN if under 60% are keepers, over 25% are not self-contained, or over 20% are anecdotes or examples.
 - Suggested practice: re-extract once if keepers are under 40%; if it stays under 40%, drop the atoms and set `atoms: none`.
 
-## Models (all via OpenRouter, override base URL with `LIBRARY_OPENROUTER_BASE_URL`)
+## Models
 
-| Step | Model class |
-|---|---|
-| EPUB to Markdown | none (a model is used only for optional chapter repair, `tools/fix_chapters.py`) |
-| Embeddings | one embedding model for everything, so the vector space stays consistent |
-| Chapter classifier, atom extraction | a cheap "flash" tier (`ATOM_TIER=flash`) or a stronger one (`sonnet`) |
-| Sampled audit | a stronger model than the extractor |
-
-The exact model ids are constants at the top of each tool; change them there.
+Set with `LIBRARY_EMBED_MODEL`, `LIBRARY_ATOM_MODEL` and `LIBRARY_JUDGE_MODEL` (all via OpenRouter; base URL `OPENROUTER_BASE_URL`). EPUB to Markdown uses no model; one model is used only for optional chapter repair (`tools/fix_chapters.py`). Use one embedding model for the whole library so vectors stay comparable, and audit with a stronger model than the extractor. Defaults, prices and alternatives: `docs/MODELS.md`.
 
 ## Links (`tools/link_atoms.py`, `tools/link_filter.py`)
 

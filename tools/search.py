@@ -9,7 +9,7 @@ OR_BASE = os.environ.get('OPENROUTER_BASE_URL', 'https://openrouter.ai/api/v1').
 
 ROOT = os.environ.get('LIBRARY_ROOT', os.getcwd())
 EMB = os.path.join(os.environ.get('LIBRARY_INDEX', os.path.join(ROOT, 'index')), 'embeddings')
-MODEL = 'voyageai/voyage-4-lite'
+MODEL = os.environ.get('LIBRARY_EMBED_MODEL', 'voyageai/voyage-4-lite')  # must match the model that built the index
 
 def embed_query(q):
     req = urllib.request.Request(OR_BASE + '/embeddings',

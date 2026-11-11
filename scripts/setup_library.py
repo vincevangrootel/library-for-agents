@@ -23,9 +23,9 @@ if a.books:
     for f in sorted(glob.glob(os.path.join(os.path.expanduser(a.books), '*.epub'))):
         shutil.copy2(f, os.path.join(dest, 'inbox')); n += 1
 with open(os.path.join(dest, '.library.env'), 'w') as f:
-    f.write(f'export LIBRARY_ROOT="{dest}"\nexport LIBRARY_INDEX="{dest}/index"\nexport LIBRARY_TOOLS="{repo}"\n# export OPENROUTER_API_KEY=...   (set in your shell, never commit it)\n# export LIBRARY_PUBLISH_REMOTE=myremote:library   (optional file storage)\n')
+    f.write(f'export LIBRARY_ROOT="{dest}"\nexport LIBRARY_INDEX="{dest}/index"\nexport LIBRARY_TOOLS="{repo}"\n# Models (docs/MODELS.md). Pick the embedding model before the first book.\nexport LIBRARY_EMBED_MODEL="voyageai/voyage-4-lite"\nexport LIBRARY_ATOM_MODEL="deepseek/deepseek-v4.1-flash"\nexport LIBRARY_JUDGE_MODEL="anthropic/claude-sonnet-5.5"\n# API key: put OPENROUTER_API_KEY=... in .env next to this file (gitignored), never here in chat or commits\n# export LIBRARY_PUBLISH_REMOTE=myremote:library   (optional file storage)\n')
 with open(os.path.join(dest, '.gitignore'), 'w') as f:
-    f.write('.library.env\n.env\n__pycache__/\n')
+    f.write('.library.env\n.env\n__pycache__/\ninbox/*.epub\n')
 if not a.no_git:
     subprocess.run(['git', 'init', '-q', '-b', 'main', dest], check=True)
-print(f'library created at {dest}\n  EPUBs copied to inbox/: {n}\n  git repository: {"no" if a.no_git else "yes (keep it private)"}\n  next: cd {dest} && . .library.env   (then see SETUP.md step 4)')
+print(f'library created at {dest}\n  EPUBs copied to inbox/: {n}\n  git repository: {"no" if a.no_git else "yes (keep it private)"}\n  next: cd {dest} && python {repo}/library.py estimate')

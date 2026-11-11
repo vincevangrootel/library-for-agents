@@ -2,105 +2,115 @@
 
 # 📚 library-for-agents
 
-**Turn the EPUB books you own into a library your AI agents can search and cite.**
+**Turn the EPUB books you own into a private library your AI agents can search and cite.**
 
-Clean Markdown · paragraph embeddings · audited atoms · a quality gate
+Clean Markdown · semantic search · audited idea atoms · one command
 
-[MIT licence](LICENSE) · Python 3.10+ · about a cent per book
+[MIT licence](LICENSE) · Python 3.10+ · free at level 1, under a cent per book at level 2
 
 </div>
 
 ---
 
-## 🤖 Just want an agent to do it?
+## 🤖 Let an agent do it
 
 Give your agent this repository and say:
 
-> *Read `AGENTS.md` and `SETUP.md` in this repo and set up a library for me.*
+> *Read `AGENTS.md` in this repo and set up a library for me.*
 
-It will interview you (where to save it, which private Git remote, where your books are), show a plan and a cost estimate, and only then build. Nothing is created before you say yes.
+It asks a few questions one at a time, shows a plan with the cost, and builds only after you say yes.
 
-## What you get
-
-For every book:
-
-| Step | Result | Tool |
-|---|---|---|
-| 1. Text | Chapters as Markdown with stable paragraph ids, checked against the source EPUB | `ingest/` |
-| 2. Embeddings | One vector per paragraph, so search finds meaning, not just words | `tools/build_embeddings.py` |
-| 3. Atoms *(optional)* | Short self-contained claims, each tied to its source paragraphs and audited | `tools/extract_atoms.py`, `tools/audit_atoms.py` |
-| 4. Links *(optional)* | Related ideas connected across books | `tools/link_atoms.py` |
-| 5. Gate | One command that says PASS, WARN or FAIL per stage | `tools/book_gate.py` |
-| 6. Search | Ask a question, get the best paragraphs with ids | `tools/search.py` |
-
-## How it is organised
-
-Two separate places:
-
-- **This repo** holds the tools only. No books, ever.
-- **Your library** is a folder you choose. Books, text, embeddings and atoms live there. It is meant to be a private Git repo, so books and everything built from them are versioned and backed up.
-
-Full picture, including backup and what leaves your machine: [docs/WHERE-THINGS-LIVE.md](docs/WHERE-THINGS-LIVE.md).
-
-## Requirements
-
-- Python 3.10+
-- An [OpenRouter](https://openrouter.ai) API key in `OPENROUTER_API_KEY` (used for embeddings and atoms)
-- Your own legally owned books as `.epub` files
-
-## Quick start with a synthetic book (about 5 minutes, about one cent)
+## 🧭 Do it yourself: four commands
 
 ```bash
 git clone https://github.com/vincevangrootel/library-for-agents && cd library-for-agents
 python3 -m venv .venv && . .venv/bin/activate && pip install -r requirements.txt
-export OPENROUTER_API_KEY=...                    # your own key
+python library.py doctor                                  # checks everything, spends nothing
 
-# an original example book, no rights issues
-python3 example/make_example_epub.py example/field-guide-to-keeping-notes.epub
-
-# create a library folder next to this repo and step inside
-python3 scripts/setup_library.py ../my-library --books example     # also runs git init
-cd ../my-library && . .library.env
-T=$LIBRARY_TOOLS
-
-# text
-python3 $T/ingest/parse_epub.py init inbox/field-guide-to-keeping-notes.epub books/example
-python3 $T/example/prep_book_yaml.py books/example     # real books: review book.yaml by hand
-python3 $T/ingest/parse_epub.py build books/example
-python3 $T/ingest/verify_text.py books/example --report 05-verify/text.json
-
-# embeddings, atoms, check
-python3 $T/tools/build_embeddings.py example
-python3 $T/tools/extract_atoms.py example
-python3 $T/tools/book_gate.py example --no-publish
-
-# ask something
-python3 $T/tools/search.py "why do note collections fail"
+python library.py new ~/library --books ~/my-epubs        # 1. create your private library
+cd ~/library
+python ~/library-for-agents/library.py estimate           # 2. words, cost and disk per level
+python ~/library-for-agents/library.py add --level 2      # 3. build (asks before spending)
+python ~/library-for-agents/library.py search "your question"   # 4. ask
 ```
 
-Expected: gate summary `WARN` (stages 2 to 5 PASS). The warnings are optional metadata: cover, ISBN, Calibre id.
+Tip: `alias library="python $PWD/library.py"` saves typing.
 
-For real books, run `python3 $T/ingest/parse_epub.py inspect BOOK.epub` first, then check `book.yaml` after `init`: which documents are chapters, front or back matter, and which images are decorative.
+## 📶 Pick a level
 
-## Settings
+Each level includes the ones below it. You can start low and go up later per book without redoing anything.
 
-| Variable | Meaning |
-|---|---|
-| `OPENROUTER_API_KEY` | Required for embeddings and atoms |
-| `LIBRARY_ROOT` / `LIBRARY_INDEX` | Library folder and index folder (written to `.library.env`) |
-| `ATOM_TIER` | `flash` (cheaper) or `sonnet` (stronger) atom extraction |
-| `LIBRARY_PUBLISH_REMOTE` | Optional file storage: copy embeddings, atoms and links to a storage location you choose so other machines or agents can use them. Skip it on a single machine. |
+| Level | You get | Good for | Cost per typical book* | Needs |
+|---|---|---|---|---|
+| **1 · Text** | Every chapter as clean Markdown, each paragraph with a stable id (`ch03-012`). Keyword search. | Reading, quoting, giving an agent exact text. Fiction. | **free** | nothing |
+| **2 · Meaning** ⭐ | One embedding per paragraph. Search by meaning: "why do habits fail" finds the passage even if it never uses those words. | Most people. Every kind of book. | **< $0.01** | OpenRouter key |
+| **3 · Ideas** | The book's claims as short, self-contained atoms, each cited to its paragraphs, a quality audit, and links between related ideas across books. | Idea-driven non-fiction you want to think with, compare and combine. | **about $0.20** | OpenRouter key |
+
+\* An 85k-word non-fiction book with the recommended models. `estimate` calculates it for your own books. Costs are one-time: a processed book is never processed again, which is why the library is a Git repo.
+
+**Recommendation:** level 2 for everything, level 3 for the non-fiction you care most about. Stories, memoirs and quote collections stay at level 2; atoms add little there.
+
+Rough totals: **100 books** at level 2 ≈ $0.30; at level 3 ≈ $15 to $25. Disk: about 5 MB per book at level 2, plus the EPUB.
+
+## 🧠 Models
+
+One [OpenRouter](https://openrouter.ai) key covers all of them. Defaults are chosen for value; change them in `.library.env`.
+
+| Job | Default | Stronger option |
+|---|---|---|
+| Embeddings (2, 3) | `voyageai/voyage-4-lite` | `mongodb/voyage-4` (pick before your first book) |
+| Atoms (3) | `deepseek/deepseek-v4.1-flash` | `anthropic/claude-sonnet-5.5` (≈5× cost) |
+| Audit (3) | `anthropic/claude-sonnet-5.5` | `--no-audit` to skip |
+
+Details, alternatives and spend control: [docs/MODELS.md](docs/MODELS.md).
+
+## 🔒 Where things live
+
+- **This repo** holds tools only. No books, ever.
+- **Your library** is a folder you choose, created as a **private** Git repo: books, text, embeddings and atoms are versioned, so money spent is never lost. Push it to a private remote for backup. A plain folder works too (`--no-git`).
+- Only text sent for embeddings and atoms leaves your machine, to OpenRouter.
+
+More, including large libraries (Git LFS from about 100 books): [docs/WHERE-THINGS-LIVE.md](docs/WHERE-THINGS-LIVE.md).
+
+## ✅ Try it with a synthetic book first (about 2 minutes, about 2 cents)
+
+```bash
+python example/make_example_epub.py /tmp/ex/field-guide-to-keeping-notes.epub
+python library.py new /tmp/demo-library --books /tmp/ex && cd /tmp/demo-library
+python ~/library-for-agents/library.py add --level 3      # say y
+python ~/library-for-agents/library.py search "why do note collections fail"
+```
+
+Expected: verdict `WARN` (no cover, ISBN or second book to link to; all fine), about 35 atoms, the top hit is the paragraph about notes treated as storage.
+
+## Commands
+
+| Command | Does | Spends |
+|---|---|---|
+| `doctor` | Checks Python, packages, git, key, models | nothing |
+| `new DEST [--books DIR] [--no-git]` | Creates the library | nothing |
+| `estimate [EPUBS] [--level N]` | Words, cost and disk per book and level | nothing |
+| `add [EPUBS] [--level N] [--type fiction]` | Builds, checks, commits. Default: everything in `inbox/` at level 2 | after you confirm |
+| `status` | Books, levels, gate verdicts, money spent | nothing |
+| `search "question" [--text]` | Semantic search, or free keyword search | a fraction of a cent per query |
+
+`add` handles each book's table of contents automatically. Running it again skips finished work. A `WARN` is normal; a `FAIL` stops that book and says why ([docs/GATE.md](docs/GATE.md)).
+
+## Requirements
+
+- Python 3.10+, git
+- An OpenRouter API key for levels 2 and 3, in `<library>/.env` (gitignored) or your shell
+- Your own, legally owned books as `.epub`. Other formats: convert with [Calibre](https://calibre-ebook.com) first.
 
 ## Repository layout
 
 ```
-AGENTS.md  SETUP.md   start here if you are an agent
-scripts/              setup_library.py creates your library folder
-ingest/               EPUB to verified Markdown
-tools/                embeddings, atoms, audit, links, gate, search
+library.py            the one command
+AGENTS.md  SETUP.md   for agents: rules and the guided setup
+docs/                 models and cost, where things live, the gate, atoms, manual steps
+ingest/  tools/       the stages library.py runs (usable on their own)
 template/             what a new library starts from
 example/              synthetic book generator
-docs/                 where things live, atoms, the gate
 ```
 
 ## Licence

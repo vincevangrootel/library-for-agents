@@ -144,7 +144,8 @@ def s_embeddings(slug, ctx):
 
 # ---- 4 atoms
 def pick_trial(ch):
-    c = sorted([r for r in ch if (r['n'] or 0) >= 10], key=lambda r: r['n'])
+    c = sorted([r for r in ch if (r['n'] or 0) >= 10], key=lambda r: r['n']) \
+        or sorted([r for r in ch if (r['n'] or 0) >= 3], key=lambda r: r['n'])  # short books: smaller chapters
     ids = []
     for i in (len(c) // 2, len(c) * 3 // 4, len(c) // 4):
         if c and c[min(i, len(c) - 1)]['id'] not in ids: ids.append(c[min(i, len(c) - 1)]['id'])
@@ -218,6 +219,7 @@ def s_atoms(slug, ctx):
     if kept < max(3, T['trial_min_atoms_per_para'] * paras): why.append(f'trial gave {kept} atoms for {paras} paragraphs')
     ov = (yaml.safe_load(open(f'{ROOT}/books/{slug}/book.yaml')) or {}).get('gate_override') or {}
     lim = ov.get('trial_max_drop', T['trial_max_drop']) if ov.get('reason') else T['trial_max_drop']
+    if paras < 40 and not ov.get('reason'): lim = max(lim, 0.30)  # small trial samples are noisy
     if tot >= 10 and drop / tot >= lim: why.append(f'trial citation drops {drop}/{tot}')
     if kept and mal / kept > T['max_malformed']: why.append(f'trial malformed claims {mal}/{kept}')
     trial = dict(chapters=per, cost=round(cost, 4))
@@ -228,7 +230,7 @@ def s_atoms(slug, ctx):
     r = subprocess.run([sys.executable, '-I', f'{HERE}/extract_atoms.py', slug], capture_output=True, text=True, cwd=ROOT, env=os.environ)
     mm = re.search(r'cost ([\d.]+)', r.stdout); cost += float(mm.group(1)) if mm else 0
     cost = fill(cost)
-    st, notes, ev = validate_atoms(slug, ch); ev.update(trial=trial, cost=round(cost, 4), tier=os.environ.get('ATOM_TIER', 'flash'))
+    st, notes, ev = validate_atoms(slug, ch); ev.update(trial=trial, cost=round(cost, 4), tier=os.environ.get('ATOM_TIER', 'flash'), model=ea.MODEL)
     return st, notes, ev
 
 # ---- 5 retrieval

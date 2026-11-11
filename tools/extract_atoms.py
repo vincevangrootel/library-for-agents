@@ -6,7 +6,7 @@ import json, os, re, glob, sys, time, urllib.request, concurrent.futures
 ROOT = os.environ.get('LIBRARY_ROOT', os.getcwd())
 OUT = os.environ.get('ATOMS_OUT', os.path.join(os.environ.get('LIBRARY_INDEX', os.path.join(ROOT, 'index')), 'atoms'))
 TIERS = {'flash': 'deepseek/deepseek-v4.1-flash', 'sonnet': 'anthropic/claude-sonnet-5.5'}
-MODEL = TIERS[os.environ.get('ATOM_TIER', 'flash')]
+MODEL = os.environ.get('LIBRARY_ATOM_MODEL') or TIERS[os.environ.get('ATOM_TIER', 'flash')]
 KEY = os.environ['OPENROUTER_API_KEY']
 import yaml
 import urllib.request as _ur; _o = _ur.build_opener(); _o.addheaders = [('User-Agent', 'Mozilla/5.0 (library-tools)')]; _ur.install_opener(_o)  # UA_HEADER: default Python UA is blocked at the OpenRouter edge (error 1010)

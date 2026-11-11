@@ -8,7 +8,7 @@ Code and documentation only. You clone it once, anywhere (for example `~/tools/l
 
 ## 2. Your library (a folder you choose)
 
-Created by `scripts/setup_library.py`. Everything about your books lives here:
+Created by `library.py new`. Everything about your books lives here:
 
 ```
 my-library/
