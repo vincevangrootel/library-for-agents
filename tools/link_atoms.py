@@ -18,7 +18,7 @@ print('suspect foreign tags',dict(bad))
 def emb(texts):
     out=[]
     for i in range(0,len(texts),64):
-        req=urllib.request.Request(OR_BASE + '/embeddings',json.dumps({'model':'voyageai/voyage-4-lite','input':texts[i:i+64]}).encode(),{'Authorization':'Bearer '+KEY,'Content-Type':'application/json'})
+        req=urllib.request.Request(OR_BASE + '/embeddings',json.dumps({'model':os.environ.get('LIBRARY_EMBED_MODEL','voyageai/voyage-4-lite'),'input':texts[i:i+64]}).encode(),{'Authorization':'Bearer '+KEY,'Content-Type':'application/json'})
         out+=[x['embedding'] for x in sorted(json.load(urllib.request.urlopen(req,timeout=120))['data'],key=lambda x:x['index'])]
     a=np.array(out,dtype=np.float32); return a/np.linalg.norm(a,axis=1,keepdims=True)
 E=emb([a['claim'] for a in atoms])

@@ -8,7 +8,7 @@ OR_BASE = os.environ.get('OPENROUTER_BASE_URL', 'https://openrouter.ai/api/v1').
 
 ROOT = os.environ.get('LIBRARY_ROOT', os.getcwd())
 OUT = os.path.join(os.environ.get('LIBRARY_INDEX', os.path.join(ROOT, 'index')), 'embeddings')
-MODEL = 'voyageai/voyage-4-lite'
+MODEL = os.environ.get('LIBRARY_EMBED_MODEL', 'voyageai/voyage-4-lite')  # change = re-embed everything
 KEY = os.environ['OPENROUTER_API_KEY']
 os.makedirs(OUT, exist_ok=True)
 

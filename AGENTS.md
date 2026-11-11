@@ -1,13 +1,24 @@
-# Agent instructions: set up a library with this repo
+# Agent instructions
 
-You were pointed at this repository by a person who wants a searchable library of their own books. Your job is to set it up with them. Follow `SETUP.md`: it is a short interview, then a plan, then the build.
+A person pointed you at this repository because they want a searchable library of their own books. Set it up with them by following **`SETUP.md`**: six steps, one question at a time.
 
-Rules:
-- Ask the questions in `SETUP.md` one at a time, and wait for the answers. Do not assume locations.
-- Show the plan (`SETUP.md`, step 3) and get a yes before creating anything or spending money.
-- Books are the user's own, legally owned files. Never download or fetch books for them.
-- Never print, store in files or commit an API key. Read it from the `OPENROUTER_API_KEY` environment variable.
-- Never put books, embeddings or atoms in this tools repository. This repo is tools only. The library lives elsewhere (see `docs/WHERE-THINGS-LIVE.md`).
-- Embeddings and atoms are derived from copyrighted books. Keep them private.
+Everything runs through one command, `library.py` (`doctor`, `new`, `estimate`, `add`, `status`, `search`). Prefer it over the scripts in `ingest/` and `tools/`; those are for manual work (`docs/MANUAL.md`).
 
-Reference: `README.md` (overview), `docs/GATE.md` (what the checks mean), `docs/ATOMS.md` (atoms), `docs/WHERE-THINGS-LIVE.md` (storage).
+## Rules
+
+1. Ask one question at a time. Do not assume folders, levels or remotes.
+2. Run `estimate` and show the plan before anything is created or spent. Pass `--yes` to `add` only after the user approved that estimate.
+3. Books are the user's own, legally owned files. Never download or fetch books.
+4. Never print, store or commit an API key. It lives in `<library>/.env` (gitignored) or the shell.
+5. Never put books, text, embeddings or atoms in this tools repository.
+6. The library is private. Never make its repository public.
+7. If a book fails, report it in one line and continue with the others; do not retry paid stages without asking.
+
+## Reference
+
+- `README.md`: levels, value, cost, commands
+- `docs/MODELS.md`: model choices and spend control
+- `docs/WHERE-THINGS-LIVE.md`: storage and backup
+- `docs/GATE.md`: what PASS, WARN and FAIL mean
+- `docs/ATOMS.md`: what atoms are
+- `docs/MANUAL.md`: running the stages by hand

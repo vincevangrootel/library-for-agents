@@ -6,7 +6,7 @@ slug = sys.argv[1]; N = int(sys.argv[2]) if len(sys.argv) > 2 else 24
 sys.argv = ['x']
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import extract_atoms as ea
-JUDGE = 'anthropic/claude-sonnet-5.5'
+JUDGE = os.environ.get('LIBRARY_JUDGE_MODEL', 'anthropic/claude-sonnet-5.5')
 at = [json.loads(l) for l in open(f'{ea.OUT}/{slug}.jsonl')]
 pm = {}
 for d in json.load(open(f'{ea.ROOT}/books/{slug}/02-text/manifest.json'))['documents']:
