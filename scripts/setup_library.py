@@ -43,7 +43,11 @@ export LIBRARY_EMBED_MODEL="qwen/qwen3-embedding-8b"
 # export LIBRARY_PUBLISH_REMOTE=myremote:library   (optional file storage)
 ''')
 with open(os.path.join(dest, '.gitignore'), 'w') as f:
-    f.write('.library.env\n.env\n__pycache__/\ninbox/*.epub\n')
+    f.write('.library.env\n.env\n.env.*\n*.key\n*.pem\n__pycache__/\ninbox/*.epub\n')
 if not a.no_git:
     subprocess.run(['git', 'init', '-q', '-b', 'main', dest], check=True)
+    hook = os.path.join(dest, '.git', 'hooks', 'pre-push')
+    with open(os.path.join(repo, 'scripts', 'hooks', 'pre-push')) as src, open(hook, 'w') as f:
+        f.write(f'#!{sys.executable}\n' + src.read().split('\n', 1)[1])
+    os.chmod(hook, 0o755)
 print(f'library created at {dest}\n  EPUBs copied to inbox/: {n}\n  git repository: {"no" if a.no_git else "yes (keep it private)"}\n  next: cd {dest} && python {repo}/library.py estimate')

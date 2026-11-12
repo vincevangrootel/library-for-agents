@@ -116,3 +116,5 @@ example/              synthetic book generator
 ## Licence
 
 MIT, see [LICENSE](LICENSE). It covers this code and documentation only. Books you process stay under their own rights; keep text, embeddings and atoms derived from them private unless you hold those rights.
+
+Security and privacy: see [SECURITY.md](SECURITY.md).

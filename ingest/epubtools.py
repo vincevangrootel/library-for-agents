@@ -17,10 +17,32 @@ def sha256(b):
     return hashlib.sha256(b if isinstance(b, bytes) else b.encode('utf8')).hexdigest()
 
 # ----------------------------------------------------------------------------- EPUB container
+MAX_MEMBER = 200_000_000      # one file inside the EPUB, uncompressed
+MAX_TOTAL = 1_000_000_000     # the whole EPUB, uncompressed
+MAX_RATIO = 200               # compression ratio above this is treated as a zip bomb
+
+def check_zip(z):
+    """Refuse EPUBs that would unpack to absurd sizes (zip bombs) or carry unsafe member names."""
+    total = 0
+    for i in z.infolist():
+        n = i.filename
+        if n.startswith('/') or '\\' in n or '..' in n.split('/'):
+            raise ValueError(f'unsafe path inside EPUB: {n!r}')
+        if i.file_size > MAX_MEMBER or (i.compress_size and i.file_size / i.compress_size > MAX_RATIO and i.file_size > 10_000_000):
+            raise ValueError(f'EPUB member too large or too compressed: {n!r}')
+        total += i.file_size
+    if total > MAX_TOTAL:
+        raise ValueError('EPUB unpacks to more than 1 GB; refusing')
+
+def safe_ext(path):
+    e = posixpath.splitext(path)[1].lower()
+    return e if re.fullmatch(r'\.[a-z0-9]{1,5}', e) else '.bin'
+
 class Epub:
     def __init__(self, path):
         self.path = path
         self.z = zipfile.ZipFile(path)
+        check_zip(self.z)
         cont = ET.fromstring(self.z.read('META-INF/container.xml'))
         self.opf_path = next(e.get('full-path') for e in cont.iter() if local(e.tag) == 'rootfile')
         self.opf_dir = posixpath.dirname(self.opf_path)
@@ -534,7 +556,7 @@ def serialize(blocks, chid, fig_ids):
             fid = next(fig_ids)
             b.fig['id'] = fid
             out.append(f"<!-- figure:{fid} -->")
-            ext = posixpath.splitext(b.fig['path'])[1].lower() or '.bin'
+            ext = safe_ext(b.fig['path'])
             out.append(f"![{fid}](figures/{fid}{ext})")
             out.append(f"<!-- /figure -->")
     return '\n'.join(out) + '\n', n

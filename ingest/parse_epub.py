@@ -166,7 +166,7 @@ def cmd_build(a):
         for b in blocks:
             if b.kind == 'figure':
                 f = b.fig
-                ext = posixpath.splitext(f['path'])[1].lower() or '.bin'
+                ext = safe_ext(f['path'])
                 fn = f'{f["id"]}{ext}'
                 open(os.path.join(out, 'figures', fn), 'wb').write(f['data'])
                 figures.append(dict(id=f['id'], file=f'figures/{fn}', chapter=d['id'], alt=f['alt'], source_doc=d['file'],
