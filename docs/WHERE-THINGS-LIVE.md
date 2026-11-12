@@ -26,7 +26,7 @@ my-library/
 
 ## Recommended: a private Git repository
 
-Each book is processed once, and the embeddings and atoms cost money to build. Keep the whole library, including `index/`, in a private Git repository: history, undo, and a backup on the remote. `scripts/setup_library.py` runs `git init` for you (skip with `--no-git`). Add a private remote and push.
+Each book is processed once, and the embeddings and atoms cost money to build. Keep the whole library, including `index/`, in a private Git repository: history, undo, and a backup on the remote. `scripts/setup_library.py` runs `git init` for you (skip with `--no-git`). Add a private remote and push. `new` also installs a pre-push check in the library that refuses to push to a public GitHub repository; private repositories and other hosts pass.
 
 Size: one book's embeddings are a few MB. Dozens of books are fine in plain Git. Past roughly 100 books the repo gets heavy; then use Git LFS for `index/`, or keep `index/` out of Git and use the optional file storage copy below.
 
