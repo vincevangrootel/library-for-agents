@@ -6,7 +6,7 @@ All model calls go through [OpenRouter](https://openrouter.ai), so one API key c
 
 | Job | Level | Default model | Why | Cost per 100k words* |
 |---|---|---|---|---|
-| Embeddings | 2, 3 | `voyageai/voyage-4-lite` | Strong retrieval quality for books, 1024 dims, very cheap | about $0.003 |
+| Embeddings | 2, 3 | `qwen/qwen3-embedding-8b`, cut to 1024 dims | Best paid model in our book-retrieval benchmark, open weights, very cheap | about $0.002 |
 | Atom extraction | 3 | `deepseek/deepseek-v4.1-flash` | Follows the citation rules well at a fraction of the price | about $0.16 (measured) |
 | Atom audit (sample of 24) | 3 | `anthropic/claude-sonnet-5.5` | A stronger, different model judges the cheap one | about $0.06 per book |
 
@@ -23,7 +23,9 @@ All model calls go through [OpenRouter](https://openrouter.ai), so one API key c
 | Another embedding model | `LIBRARY_EMBED_MODEL=...` | Must be set **before** the first book. Changing it later means re-embedding every book, because vectors from different models cannot be compared. |
 | Another atom model | `LIBRARY_ATOM_MODEL=...` | Any OpenRouter chat model works technically. Prompts were tuned on the two models above; check the gate and audit on one book before batching. `estimate` shows "unknown" cost for unmeasured models. |
 
-Embedding models that work through OpenRouter's `/embeddings` endpoint include `mongodb/voyage-4` (stronger, about 3x price), `qwen/qwen3-embedding-8b` (cheapest, 4096 dims, about 4x the disk), and `openai/text-embedding-3-small`. Only `voyage-4-lite` is tested end to end with the gate's thresholds.
+Embedding benchmark (atom claim to its cited paragraph, 4,536 paragraphs from English and Dutch books, 362 queries, top-1): Qwen3-Embedding 8B 0.93, OpenAI text-embedding-3-large 0.92, Voyage 4 Large 0.91, OpenAI 3-small 0.90, Voyage 4 0.88, Cohere embed-5-pro 0.86, Voyage 4 Lite 0.86. Free endpoints scored well but publish no data policy; do not send private books to them.
+
+Rules: build and search with the same `LIBRARY_EMBED_MODEL` and `LIBRARY_EMBED_DIMS` (default 1024; vectors are cut and re-normalised). Search refuses a mismatch. Changing either means rebuilding every index (`python library.py add --level 2 --rebuild`) and recalibrating `LIBRARY_LINK_THRESHOLD` (default 0.72) before regenerating links, because cosine scales differ per model.
 
 ## Where to set them
 

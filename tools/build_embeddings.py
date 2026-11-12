@@ -4,12 +4,11 @@ Derived data only; 02-text stays immutable. Output is derived from the books: ke
 import json, os, re, glob, sys, time, urllib.request, concurrent.futures
 import numpy as np
 import urllib.request as _ur; _o = _ur.build_opener(); _o.addheaders = [('User-Agent', 'Mozilla/5.0 (library-tools)')]; _ur.install_opener(_o)  # UA_HEADER: default Python UA is blocked at the OpenRouter edge (error 1010)
-OR_BASE = os.environ.get('OPENROUTER_BASE_URL', 'https://openrouter.ai/api/v1').rstrip('/')
 
 ROOT = os.environ.get('LIBRARY_ROOT', os.getcwd())
 OUT = os.path.join(os.environ.get('LIBRARY_INDEX', os.path.join(ROOT, 'index')), 'embeddings')
-MODEL = os.environ.get('LIBRARY_EMBED_MODEL', 'voyageai/voyage-4-lite')  # change = re-embed everything
-KEY = os.environ['OPENROUTER_API_KEY']
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__))); import llm
+MODEL = llm.embed_model()  # change = re-embed everything
 os.makedirs(OUT, exist_ok=True)
 
 import yaml
@@ -23,28 +22,20 @@ def _eligible():
 books = sys.argv[1:] or _eligible()  # default: every non-duplicate book that has a text layer
 
 def post(texts):
-    body = json.dumps({'model': MODEL, 'input': texts}).encode()
-    for attempt in range(5):
-        try:
-            req = urllib.request.Request(OR_BASE + '/embeddings', body,
-                                         {'Authorization': 'Bearer ' + KEY, 'Content-Type': 'application/json'})
-            r = json.load(urllib.request.urlopen(req, timeout=180))
-            return [x['embedding'] for x in sorted(r['data'], key=lambda x: x['index'])], r.get('usage', {})
-        except Exception as e:
-            err = e; time.sleep(2 ** attempt)
-    raise err
+    return llm.embed(texts, 'document')
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__))); import sections
 
 def paragraphs(slug):
     m = json.load(open(f'{ROOT}/books/{slug}/02-text/manifest.json'))
     out = []
-    has_chapters = any(d.get('kind') == 'chapter' for d in m['documents'])  # some books are tagged only 'front'
     for d in m['documents']:
         fs = glob.glob(f"{ROOT}/books/{slug}/02-text/chapters/{d['id']}-*.md")
         if not fs: continue
-        for mm in re.finditer(r'^(.*?)\s\^([a-z0-9]+-\d{3,})\s*$', open(fs[0]).read(), re.M):
-            t = mm.group(1).strip()
-            if len(t) >= 40:
-                out.append((d['id'], mm.group(2), t))
+        ps = [(mm.group(2), mm.group(1).strip()) for mm in re.finditer(r'^(.*?)\s\^([a-z0-9]+-\d{3,})\s*$', open(fs[0]).read(), re.M)
+              if len(mm.group(1).strip()) >= 40]
+        if sections.is_reference(d.get('title'), [t for _, t in ps]): continue   # index, notes, bibliography, ...
+        out += [(d['id'], pid, t) for pid, t in ps]
     return out
 
 def do_book(slug):

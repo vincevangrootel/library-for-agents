@@ -14,7 +14,7 @@ import yaml
 ROOT = os.environ.get('LIBRARY_ROOT', os.getcwd())
 IDX = os.environ.get('LIBRARY_INDEX', os.path.join(ROOT, 'index'))
 AT = IDX + '/atoms'
-GLOBAL, PER_BOOK, MAX = 0.72, 6, 40
+GLOBAL, PER_BOOK, MAX = float(os.environ.get('LIBRARY_LINK_THRESHOLD', 0.70)), 6, 40   # calibrated for qwen3-embedding-8b at 1024 dims; recalibrate per model
 
 def lang(slug):
     try:

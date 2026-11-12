@@ -23,7 +23,25 @@ if a.books:
     for f in sorted(glob.glob(os.path.join(os.path.expanduser(a.books), '*.epub'))):
         shutil.copy2(f, os.path.join(dest, 'inbox')); n += 1
 with open(os.path.join(dest, '.library.env'), 'w') as f:
-    f.write(f'export LIBRARY_ROOT="{dest}"\nexport LIBRARY_INDEX="{dest}/index"\nexport LIBRARY_TOOLS="{repo}"\n# Models (docs/MODELS.md). Pick the embedding model before the first book.\nexport LIBRARY_EMBED_MODEL="voyageai/voyage-4-lite"\nexport LIBRARY_ATOM_MODEL="deepseek/deepseek-v4.1-flash"\nexport LIBRARY_JUDGE_MODEL="anthropic/claude-sonnet-5.5"\n# API key: put OPENROUTER_API_KEY=... in .env next to this file (gitignored), never here in chat or commits\n# export LIBRARY_PUBLISH_REMOTE=myremote:library   (optional file storage)\n')
+    f.write(f'''export LIBRARY_ROOT="{dest}"
+export LIBRARY_INDEX="{dest}/index"
+export LIBRARY_TOOLS="{repo}"
+# Model routes and choices: docs/MODELS.md. Keys go in .env next to this file (gitignored), never in chat or commits.
+#
+# Atoms + audit (level 3). One of: openrouter (default) | anthropic | openai | claude-code | codex
+#   claude-code / codex use your Claude or ChatGPT subscription through their CLI (no token bill, uses plan quota).
+export LIBRARY_LLM="openrouter"
+# Leave these unset for the route's recommended models, or pin your own:
+# export LIBRARY_ATOM_MODEL="deepseek/deepseek-v4.1-flash"
+# export LIBRARY_JUDGE_MODEL="anthropic/claude-sonnet-5.5"
+#
+# Embeddings (levels 2 and 3). Pick before the first book: changing later means re-embedding everything.
+#   Subscriptions do not include embeddings, so this always needs an API key.
+export LIBRARY_EMBED_PROVIDER="openrouter"          # openrouter | voyage | openai
+export LIBRARY_EMBED_MODEL="qwen/qwen3-embedding-8b"
+#
+# export LIBRARY_PUBLISH_REMOTE=myremote:library   (optional file storage)
+''')
 with open(os.path.join(dest, '.gitignore'), 'w') as f:
     f.write('.library.env\n.env\n__pycache__/\ninbox/*.epub\n')
 if not a.no_git:

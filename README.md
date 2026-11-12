@@ -58,7 +58,7 @@ One [OpenRouter](https://openrouter.ai) key covers all of them. Defaults are cho
 
 | Job | Default | Stronger option |
 |---|---|---|
-| Embeddings (2, 3) | `voyageai/voyage-4-lite` | `mongodb/voyage-4` (pick before your first book) |
+| Embeddings (2, 3) | `qwen/qwen3-embedding-8b`, 1024 dims | `openai/text-embedding-3-large` (pick before your first book) |
 | Atoms (3) | `deepseek/deepseek-v4.1-flash` | `anthropic/claude-sonnet-5.5` (≈5× cost) |
 | Audit (3) | `anthropic/claude-sonnet-5.5` | `--no-audit` to skip |
 

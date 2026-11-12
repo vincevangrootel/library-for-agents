@@ -18,7 +18,8 @@ Levels (see README.md):
   3  Ideas       + atoms (one idea each, cited), audit, cross-book links  ~$0.15 to $0.90 per 100k words
 
 Run `add` from inside the library folder, or pass --lib. Settings come from the shell, then
-<library>/.library.env, then <library>/.env (gitignored; the place for OPENROUTER_API_KEY). Keys are never printed.
+<library>/.library.env, then <library>/.env (gitignored; the place for API keys). Keys are never printed.
+Model routes (OpenRouter, Anthropic/OpenAI API, Claude or Codex subscription): docs/MODELS.md.
 """
 import argparse, glob, json, os, re, shutil, subprocess, sys
 
@@ -26,17 +27,16 @@ REPO = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, os.path.join(REPO, 'ingest'))
 PY = sys.executable
 
-DEFAULT_MODELS = {
-    'LIBRARY_EMBED_MODEL': 'voyageai/voyage-4-lite',
-    'LIBRARY_ATOM_MODEL': 'deepseek/deepseek-v4.1-flash',
-    'LIBRARY_JUDGE_MODEL': 'anthropic/claude-sonnet-5.5',
-}
+def llm_mod():
+    """tools/llm.py reads the route from the environment, so import it only after setup_env."""
+    sys.path.insert(0, os.path.join(REPO, 'tools')); import llm; return llm
 # USD per 100k words of book text. Embeddings: list price x ~135k tokens. Atoms: measured on real non-fiction
 # books (full extraction incl. retries); expect +-50% per book. See docs/MODELS.md. Prices: OpenRouter, Nov 2026.
-EMBED_RATE = {'voyageai/voyage-4-lite': 0.003, 'mongodb/voyage-4-lite': 0.003, 'voyageai/voyage-4': 0.008,
+EMBED_RATE = {'voyage-4-lite': 0.003, 'voyage-4-large': 0.016, 'text-embedding-3-large': 0.018, 'voyageai/voyage-4-lite': 0.003, 'mongodb/voyage-4-lite': 0.003, 'voyageai/voyage-4': 0.008,
               'qwen/qwen3-embedding-8b': 0.0014, 'openai/text-embedding-3-small': 0.003, 'openai/text-embedding-3-large': 0.018}
-ATOM_RATE = {'deepseek/deepseek-v4.1-flash': 0.16, 'anthropic/claude-sonnet-5.5': 0.89}   # measured; others unknown
-AUDIT_COST = {'anthropic/claude-sonnet-5.5': 0.06}     # per book: 24 sampled atoms judged
+ATOM_RATE = {'deepseek/deepseek-v4.1-flash': 0.16, 'anthropic/claude-sonnet-5.5': 0.89, 'claude-sonnet-5-5': 0.89,
+             'anthropic/claude-haiku-5.5': 0.20, 'claude-haiku-5-5': 0.20, 'gpt-5.6-luna': 0.35}   # sonnet+flash measured; others from list price
+AUDIT_COST = {'anthropic/claude-sonnet-5.5': 0.06, 'claude-sonnet-5-5': 0.06, 'gpt-5.6-terra': 0.07}     # per book: 24 sampled atoms judged
 EMBED_MB_PER_100K = 3.3                                  # float16, 1024 dims
 TEXT_MB_PER_100K = 2.0                                   # 02-text + 04-assemble + chunks
 LEVEL_NAME = {1: 'Text', 2: 'Meaning', 3: 'Ideas'}
@@ -48,9 +48,10 @@ def say(*a): print(*a, flush=True)
 def load_env_file(p):
     if not os.path.exists(p): return
     for ln in open(p):
-        m = re.match(r'\s*(?:export\s+)?([A-Z_][A-Z0-9_]*)\s*=\s*(.*?)\s*$', ln)
+        m = re.match(r'\s*(?:export\s+)?([A-Z_][A-Z0-9_]*)\s*=\s*(?:"([^"]*)"|\'([^\']*)\'|([^#]*?))\s*(?:#.*)?$', ln)
         if m and m.group(1) not in os.environ:
-            os.environ[m.group(1)] = os.path.expandvars(m.group(2).strip('"\''))
+            v = next(g for g in m.groups()[1:] if g is not None)
+            os.environ[m.group(1)] = os.path.expandvars(v)
 
 def find_root(given=None):
     if given: return os.path.abspath(os.path.expanduser(given))
@@ -65,10 +66,22 @@ def setup_env(root):
     load_env_file(os.path.join(root, '.library.env')); load_env_file(os.path.join(root, '.env'))
     os.environ['LIBRARY_ROOT'] = root
     os.environ.setdefault('LIBRARY_INDEX', os.path.join(root, 'index'))
-    for k, v in DEFAULT_MODELS.items(): os.environ.setdefault(k, v)
 
 def models():
-    return {k: os.environ.get(k, v) for k, v in DEFAULT_MODELS.items()}
+    l = llm_mod()
+    return {'LIBRARY_LLM': l.ROUTE, 'LIBRARY_EMBED_PROVIDER': l.EMBED_ROUTE, 'LIBRARY_EMBED_MODEL': l.embed_model(),
+            'LIBRARY_ATOM_MODEL': l.atom_model() or '(codex default)', 'LIBRARY_JUDGE_MODEL': l.judge_model() or '(codex default)'}
+
+def subscription(): return llm_mod().SUBSCRIPTION
+
+def key_problems(level):
+    """Missing credentials for this level, as human-readable strings (values never shown)."""
+    l = llm_mod(); bad = []
+    if level >= 2 and not os.environ.get(l.embed_key_name()): bad.append(f'{l.embed_key_name()} (embeddings, levels 2 and 3)')
+    if level >= 3:
+        ok, what = l.ready()
+        if not ok: bad.append(f'{what} (atoms, level 3, LIBRARY_LLM={l.ROUTE})')
+    return bad
 
 def run(args, root, quiet=False):
     r = subprocess.run([PY, '-I', *args], cwd=root, env=os.environ, capture_output=True, text=True)
@@ -98,10 +111,13 @@ def slug_for(title):
 
 def level_cost(words, level, m, audit=True):
     k = words / 1e5
-    e = EMBED_RATE.get(m['LIBRARY_EMBED_MODEL']); a = ATOM_RATE.get(m['LIBRARY_ATOM_MODEL'])
+    e = EMBED_RATE.get(m['LIBRARY_EMBED_MODEL'].split('/')[-1] if m['LIBRARY_EMBED_PROVIDER'] != 'openrouter' else m['LIBRARY_EMBED_MODEL'],
+                       EMBED_RATE.get('voyageai/' + m['LIBRARY_EMBED_MODEL'], EMBED_RATE.get('openai/' + m['LIBRARY_EMBED_MODEL'])))
     if level == 1: return 0.0
     if e is None: return None
     if level == 2: return e * k
+    if m['LIBRARY_LLM'] in ('claude-code', 'codex'): return e * k * 1.05     # atoms + audit come out of the subscription quota
+    a = ATOM_RATE.get(m['LIBRARY_ATOM_MODEL'])
     if a is None: return None
     return e * k * 1.05 + a * k + (AUDIT_COST.get(m['LIBRARY_JUDGE_MODEL'], 0.10) if audit else 0)
 
@@ -121,9 +137,13 @@ def cmd_doctor(a):
     try:
         root = find_root(a.lib); setup_env(root); say(f'library     {root}')
     except SystemExit:
-        root = None; [os.environ.setdefault(k, v) for k, v in DEFAULT_MODELS.items()]; say('library     none found here (fine before `new`)')
-    say('api key     ' + ('set (not shown)' if os.environ.get('OPENROUTER_API_KEY') else 'not set: needed for levels 2 and 3, not for level 1'))
-    for k, v in models().items(): say(f'{k:20} {v}' + ('' if v == DEFAULT_MODELS[k] else '  (custom)'))
+        root = None; say('library     none found here (fine before `new`)')
+    for k, v in models().items(): say(f'{k:22} {v}')
+    l = llm_mod()
+    say('embed key   ' + ('set (not shown)' if os.environ.get(l.embed_key_name()) else f'{l.embed_key_name()} not set: needed for levels 2 and 3'))
+    okr, what = l.ready()
+    say('atom route  ' + (f'ready ({what})' if okr else f'not ready: needs {what}; only level 3 uses it'))
+    if l.SUBSCRIPTION: say('            subscription route: no per-token bill, but it uses your plan quota and runs slower (docs/MODELS.md)')
     say('\nready' if ok else '\nfix the MISSING items above'); return 0 if ok else 1
 
 def cmd_new(a):
@@ -134,8 +154,6 @@ def cmd_estimate(a):
     root = None
     if not a.paths:
         root = find_root(a.lib); setup_env(root)
-    else:
-        for k, v in DEFAULT_MODELS.items(): os.environ.setdefault(k, v)
     m = models(); files = expand(a.paths, root)
     if not files: sys.exit('no EPUB files found')
     tot = {1: 0.0, 2: 0.0, 3: 0.0}; words = mb = 0
@@ -148,7 +166,8 @@ def cmd_estimate(a):
     disk = {1: mb + words / 1e5 * TEXT_MB_PER_100K}; disk[2] = disk[1] + words / 1e5 * EMBED_MB_PER_100K; disk[3] = disk[2] + words / 1e5 * 0.3
     say(f"{'TOTAL (' + str(len(files)) + ' books)':44} {words:>8,}   {money(tot[1]):>7}   {money(tot[2]):>10}   {money(tot[3]):>8}")
     say(f"{'disk, approx.':44} {'':>8}   {disk[1]:>5.0f}MB   {disk[2]:>8.0f}MB   {disk[3]:>6.0f}MB")
-    say(f"\nmodels: embeddings {m['LIBRARY_EMBED_MODEL']}, atoms {m['LIBRARY_ATOM_MODEL']}, audit {m['LIBRARY_JUDGE_MODEL']}" + ('' if a.no_audit else ''))
+    say(f"\nroute {m['LIBRARY_LLM']}; embeddings {m['LIBRARY_EMBED_MODEL']}, atoms {m['LIBRARY_ATOM_MODEL']}, audit {m['LIBRARY_JUDGE_MODEL']}")
+    if subscription(): say('level 3 atoms and audit run on your subscription: no token bill, but they use plan quota (roughly 60 to 120 calls per book) and are slower.')
     if any(v is None for v in tot.values()):
         say('unknown = no measured rate for a custom model: process one book first and read its real cost (python library.py status).')
     if a.level: say(f'\nchosen level {a.level} ({LEVEL_NAME[a.level]}): about {money(tot[a.level])} in total. Estimates are approximate; actual spend is printed after each book.')
@@ -201,12 +220,12 @@ def cmd_add(a):
     root = find_root(a.lib); setup_env(root); m = models()
     files = expand(a.paths, root)
     if not files: sys.exit(f'no EPUB files found. Put your EPUBs in {root}/inbox/ or pass paths.')
-    if a.level >= 2 and not os.environ.get('OPENROUTER_API_KEY'):
-        sys.exit('Level 2 and 3 need OPENROUTER_API_KEY. Put it in <library>/.env (gitignored) or your shell; it is never printed.')
+    bad = key_problems(a.level)
+    if bad: sys.exit('Missing for this level: ' + '; '.join(bad) + '. Keys go in <library>/.env (gitignored) or your shell; never printed. See docs/MODELS.md.')
     est = 0.0; words = 0
     for f in files:
         w = epub_info(f)['words']; words += w; c = level_cost(w, a.level, m, not a.no_audit); est = None if est is None or c is None else est + c
-    say(f'{len(files)} book(s), {words:,} words, level {a.level} ({LEVEL_NAME[a.level]}), estimated cost {money(est)}')
+    say(f'{len(files)} book(s), {words:,} words, level {a.level} ({LEVEL_NAME[a.level]}), estimated cost {money(est)}' + (' + subscription quota' if a.level == 3 and subscription() else ''))
     if a.level >= 2 and not a.yes:
         if not sys.stdin.isatty(): sys.exit('This spends money. Re-run with --yes after the owner approved the estimate above.')
         if input('Proceed? [y/N] ').strip().lower() not in ('y', 'yes'): sys.exit('cancelled, nothing spent')
@@ -274,7 +293,7 @@ def cmd_status(a):
 
 def cmd_search(a):
     root = find_root(a.lib); setup_env(root)
-    sem = glob.glob(os.path.join(os.environ['LIBRARY_INDEX'], 'embeddings', '*.npz')) and os.environ.get('OPENROUTER_API_KEY') and not a.text
+    sem = glob.glob(os.path.join(os.environ['LIBRARY_INDEX'], 'embeddings', '*.npz')) and os.environ.get(llm_mod().embed_key_name()) and not a.text
     if sem: return subprocess.run([PY, '-I', os.path.join(REPO, 'tools', 'search.py'), a.query, '-k', str(a.k)], cwd=root, env=os.environ).returncode
     return subprocess.run([PY, '-I', os.path.join(REPO, 'template', 'tools', 'search.py'), a.query, '--root', root, '-n', str(a.k)], cwd=root, env=os.environ).returncode
 
