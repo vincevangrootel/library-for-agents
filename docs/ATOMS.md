@@ -51,6 +51,12 @@ Set with `LIBRARY_EMBED_MODEL`, `LIBRARY_ATOM_MODEL` and `LIBRARY_JUDGE_MODEL` (
 
 Links connect atoms across books that both have atoms: mutual top-3 neighbours plus a score threshold. Links are a targeted synthesis feature, not a general retrieval boost.
 
+The link threshold (`LIBRARY_LINK_THRESHOLD`, default 0.70) depends on the embedding model: cosine scores sit on a different scale per model. 0.70 was calibrated for `qwen/qwen3-embedding-8b` at 1024 dims. After changing the model, pick the threshold that keeps the same share of atoms above the cutoff before rebuilding links.
+
+## What is not indexed
+
+Reference sections stay out of the search index (`tools/sections.py`): back-of-book indexes, notes, bibliographies, copyright pages, acknowledgements and similar. They are found by section title (English and Dutch) or by content (5+ paragraphs, 70%+ of them citation-like). Such sections match on keywords and citations and push the passage that makes the point out of the top results. In a test library of about 230 books they were 13% of paragraphs; leaving them out kept claim-retrieval scores level and removed index and note entries from the top 10 of open questions. The text itself stays in the library; only the search index skips it.
+
 ## Reproducing
 
 1. Build Markdown with paragraph ids from your own legal copy; keep a `source_url` per book.

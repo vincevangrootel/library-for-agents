@@ -6,7 +6,7 @@ slug = sys.argv[1]; N = int(sys.argv[2]) if len(sys.argv) > 2 else 24
 sys.argv = ['x']
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import extract_atoms as ea
-JUDGE = os.environ.get('LIBRARY_JUDGE_MODEL', 'anthropic/claude-sonnet-5.5')
+JUDGE = ea.llm.judge_model()
 at = [json.loads(l) for l in open(f'{ea.OUT}/{slug}.jsonl')]
 pm = {}
 for d in json.load(open(f'{ea.ROOT}/books/{slug}/02-text/manifest.json'))['documents']:
@@ -38,7 +38,7 @@ def judge(a):
             return dict(a, judge=j)
         except Exception: pass
     return dict(a, judge=None)
-with concurrent.futures.ThreadPoolExecutor(6) as ex: res = list(ex.map(judge, pool))
+with concurrent.futures.ThreadPoolExecutor(ea.llm.workers(6)) as ex: res = list(ex.map(judge, pool))
 os.makedirs(f'{ea.OUT}/_audit', exist_ok=True)
 json.dump(res, open(f'{ea.OUT}/_audit/{slug}.json', 'w'), ensure_ascii=False, indent=1)
 ok = [r['judge'] for r in res if r['judge']]

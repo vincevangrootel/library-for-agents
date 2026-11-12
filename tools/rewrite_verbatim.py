@@ -44,7 +44,7 @@ def main():
     f = f'{OUT}/{slug}.jsonl'; at = [json.loads(l) for l in open(f)]; pm = paras_for(slug)
     bad = [i for i, a in enumerate(at) if longest_shared(a['claim'], ' '.join(pm.get(a['chapter'], {}).get(p, '') for p in a['paras'])) >= 13]
     print(slug, 'atoms', len(at), 'copying', len(bad), f'({len(bad)/len(at):.1%})', flush=True)
-    with concurrent.futures.ThreadPoolExecutor(6) as ex: res = list(ex.map(lambda i: fix(at[i], pm), bad))
+    with concurrent.futures.ThreadPoolExecutor(ea.llm.workers(6)) as ex: res = list(ex.map(lambda i: fix(at[i], pm), bad))
     ok = 0; ex_pairs = []
     for i, new in zip(bad, res):
         if new:

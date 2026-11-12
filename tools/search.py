@@ -1,21 +1,18 @@
 #!/usr/bin/env python3
 """Semantic search over the library. Returns cited paragraph IDs.
 Usage: search.py "question" [-k 8] [--book SLUG_SUBSTRING] [--json] [--text-chars 300]
-Needs OPENROUTER_API_KEY (to embed the query). Results contain book text: keep them private unless you own the rights."""
+Needs the embedding key (to embed the query). Results contain book text: keep them private unless you own the rights."""
 import argparse, glob, json, os, re, sys, urllib.request
 import numpy as np
 import urllib.request as _ur; _o = _ur.build_opener(); _o.addheaders = [('User-Agent', 'Mozilla/5.0 (library-tools)')]; _ur.install_opener(_o)  # UA_HEADER: default Python UA is blocked at the OpenRouter edge (error 1010)
-OR_BASE = os.environ.get('OPENROUTER_BASE_URL', 'https://openrouter.ai/api/v1').rstrip('/')
 
 ROOT = os.environ.get('LIBRARY_ROOT', os.getcwd())
 EMB = os.path.join(os.environ.get('LIBRARY_INDEX', os.path.join(ROOT, 'index')), 'embeddings')
-MODEL = os.environ.get('LIBRARY_EMBED_MODEL', 'voyageai/voyage-4-lite')  # must match the model that built the index
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__))); import llm
+MODEL = llm.embed_model()  # must match the model that built the index
 
 def embed_query(q):
-    req = urllib.request.Request(OR_BASE + '/embeddings',
-        json.dumps({'model': MODEL, 'input': [q]}).encode(),
-        {'Authorization': 'Bearer ' + os.environ['OPENROUTER_API_KEY'], 'Content-Type': 'application/json'})
-    v = np.array(json.load(urllib.request.urlopen(req, timeout=60))['data'][0]['embedding'], dtype=np.float32)
+    v = np.array(llm.embed([q], 'query')[0][0], dtype=np.float32)
     return v / (np.linalg.norm(v) + 1e-9)
 
 def para_text(slug, chapter, pid):
@@ -37,6 +34,10 @@ def main():
         slug = os.path.basename(f)[:-4]
         if a.book and a.book not in slug: continue
         z = np.load(f)
+        built = str(z['model']) if 'model' in z.files else MODEL
+        if built != MODEL or z['vec'].shape[1] != q.shape[0]:
+            sys.exit(f'{slug} was embedded with {built} ({z["vec"].shape[1]} dims) but search uses {MODEL} ({q.shape[0]} dims).\n'
+                     'Set LIBRARY_EMBED_MODEL back, or rebuild: python library.py add --level 2 --rebuild')
         s = z['vec'].astype(np.float32) @ q
         for i in np.argsort(-s)[:a.k]:
             hits.append((float(s[i]), slug, str(z['chapter'][i]), str(z['para'][i])))

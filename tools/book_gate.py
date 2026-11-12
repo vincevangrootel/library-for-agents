@@ -11,7 +11,7 @@ Stages (stop at first FAIL; every run writes books/<slug>/05-verify/import-gate.
   7 file storage  optional: copy the derived files (embeddings, atoms, links) to a storage location you choose (LIBRARY_PUBLISH_REMOTE), verified by size; N/A when unset
 
 Usage: book_gate.py SLUG... [--check-only] [--redo-atoms] [--repair-text] [--no-publish] [--stages 1,2,3]
-Env: OPENROUTER_API_KEY, ATOM_TIER=flash|sonnet, LIBRARY_ROOT, LIBRARY_INDEX, LIBRARY_PUBLISH_REMOTE (optional)."""
+Env: model route + keys per tools/llm.py (LIBRARY_LLM, LIBRARY_EMBED_PROVIDER), ATOM_TIER=flash|sonnet (OpenRouter), LIBRARY_ROOT, LIBRARY_INDEX, LIBRARY_PUBLISH_REMOTE (optional)."""
 import argparse, collections, datetime, glob, hashlib, importlib.util, json, os, re, shutil, subprocess, sys
 import numpy as np, yaml
 
@@ -22,7 +22,7 @@ ATOMS, EMB = f'{LIB}/atoms', f'{LIB}/embeddings'
 DROP = os.environ.get('LIBRARY_PUBLISH_REMOTE', '')  # optional storage location in rclone form (any storage rclone supports), e.g. myremote:library/assets
 T = dict(min_chapters=3, body_coverage=0.60, trial_min_atoms_per_para=0.10, trial_max_drop=0.20, max_malformed=0.10,
          chapter_atom_coverage=0.80, audit_max_unfaithful=0.10, audit_min_keep=0.60, audit_max_not_standalone=0.25, audit_max_anecdote=0.20, max_dupes=0.05, max_verbatim=0.10,
-         retr_book_top5=0.70, retr_lib_top10=0.50, link_threshold=0.72, link_max=40, link_per_book=6)
+         retr_book_top5=0.70, retr_lib_top10=0.50, link_threshold=float(os.environ.get('LIBRARY_LINK_THRESHOLD', 0.70)), link_max=40, link_per_book=6)
 FRONT = re.compile(r'dedicat|epigraph|acknowledg|about the|also by|other books|credits|copyright|publisher|foreword|contents|index|notes|praise|title|cover|newsletter|copyright', re.I)
 BACK = re.compile(r'^\s*([A-Za-z]$|index|notes?|endnotes?|references?|bibliography|selected bibliography|list of searchable terms|illustration credits|image credits|permissions|glossary|further reading|resources)\b', re.I)
 PARA = re.compile(r'^(.*?)\s\^([a-z0-9]+-\d{3,})\s*$', re.M)
@@ -31,6 +31,8 @@ def load(name, argv):
     sys.argv = ['x'] + argv
     sp = importlib.util.spec_from_file_location(name, os.path.join(HERE, name + '.py'))
     m = importlib.util.module_from_spec(sp); sp.loader.exec_module(m); return m
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__))); import sections
 
 def manifest(slug): return json.load(open(f'{ROOT}/books/{slug}/02-text/manifest.json'))
 def doc_paras(slug, d):
@@ -121,8 +123,14 @@ def s_text(slug, ctx):
 
 # ---- 3 embeddings
 def book_rows(slug, chapters_only=False):
-    return [(d['id'], pid) for d in manifest(slug)['documents'] if not chapters_only or d['kind'] == 'chapter'
-            for pid, _ in (doc_paras(slug, d) or [])]
+    """Paragraphs that belong in the search index: reference sections (index, notes, ...) are left out."""
+    rows = []
+    for d in manifest(slug)['documents']:
+        if chapters_only and d['kind'] != 'chapter': continue
+        ps = doc_paras(slug, d) or []
+        if sections.is_reference(d.get('title'), [t for _, t in ps]): continue
+        rows += [(d['id'], pid) for pid, _ in ps]
+    return rows
 def s_embeddings(slug, ctx):
     f, rows, need = f'{EMB}/{slug}.npz', book_rows(slug), book_rows(slug, True)
     def ok():

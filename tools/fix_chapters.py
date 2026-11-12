@@ -1,15 +1,10 @@
-"""Sonnet pass: decide which manifest documents are body chapters; rewrite `kind`, keep `kind_original`."""
+"""Model pass (judge model): decide which manifest documents are body chapters; rewrite `kind`, keep `kind_original`."""
 import sys, os, json, re, urllib.request
 import urllib.request as _ur; _o = _ur.build_opener(); _o.addheaders = [('User-Agent', 'Mozilla/5.0 (library-tools)')]; _ur.install_opener(_o)  # UA_HEADER: default Python UA is blocked at the OpenRouter edge (error 1010)
-OR_BASE = os.environ.get('OPENROUTER_BASE_URL', 'https://openrouter.ai/api/v1').rstrip('/')
 ROOT = os.environ.get('LIBRARY_ROOT', os.getcwd())
-KEY = os.environ['OPENROUTER_API_KEY']
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__))); import llm
 def ask(prompt):
-    req = urllib.request.Request(OR_BASE + '/chat/completions', json.dumps({
-        'model': 'anthropic/claude-sonnet-5.5', 'temperature': 0,
-        'messages': [{'role': 'user', 'content': prompt}]}).encode(),
-        {'Authorization': 'Bearer ' + KEY, 'Content-Type': 'application/json'})
-    return json.load(urllib.request.urlopen(req, timeout=120))['choices'][0]['message']['content']
+    return llm.chat({'model': llm.judge_model(), 'temperature': 0, 'messages': [{'role': 'user', 'content': prompt}]})['choices'][0]['message']['content']
 NUMWORDS = r'(een|twee|drie|vier|vijf|zes|zeven|acht|negen|tien|elf|twaalf|dertien|veertien|vijftien|zestien|zeventien|achttien|negentien|twintig|one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|thirteen|fourteen|fifteen|sixteen|seventeen|eighteen|nineteen|twenty)'
 HEADING = re.compile(r'^\s*((chapter|hoofdstuk|part|deel|kapitel|chapitre)\s+)?(\d+|[ivxlc]+|' + NUMWORDS + r')\b[.:]?\s*$|^\s*(proloog|prologue|epiloog|epilogue)\b', re.I)
 def deterministic(m):

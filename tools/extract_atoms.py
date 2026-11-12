@@ -1,16 +1,15 @@
 #!/usr/bin/env python3
-"""Atom trial: extract atomic claims per chapter with Sonnet. Derived data: keep private.
+"""Atom trial: extract atomic claims per chapter (model route: tools/llm.py). Derived data: keep private.
 Output: $LIBRARY_INDEX/atoms/<book>.jsonl (one atom per line). Resumable per chapter."""
 import json, os, re, glob, sys, time, urllib.request, concurrent.futures
 
 ROOT = os.environ.get('LIBRARY_ROOT', os.getcwd())
 OUT = os.environ.get('ATOMS_OUT', os.path.join(os.environ.get('LIBRARY_INDEX', os.path.join(ROOT, 'index')), 'atoms'))
 TIERS = {'flash': 'deepseek/deepseek-v4.1-flash', 'sonnet': 'anthropic/claude-sonnet-5.5'}
-MODEL = os.environ.get('LIBRARY_ATOM_MODEL') or TIERS[os.environ.get('ATOM_TIER', 'flash')]
-KEY = os.environ['OPENROUTER_API_KEY']
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__))); import llm
+MODEL = os.environ.get('LIBRARY_ATOM_MODEL') or (TIERS[os.environ['ATOM_TIER']] if llm.ROUTE == 'openrouter' and os.environ.get('ATOM_TIER') else llm.atom_model())
 import yaml
 import urllib.request as _ur; _o = _ur.build_opener(); _o.addheaders = [('User-Agent', 'Mozilla/5.0 (library-tools)')]; _ur.install_opener(_o)  # UA_HEADER: default Python UA is blocked at the OpenRouter edge (error 1010)
-OR_BASE = os.environ.get('OPENROUTER_BASE_URL', 'https://openrouter.ai/api/v1').rstrip('/')
 def eligible():
     out = []
     for f in sorted(glob.glob(ROOT + '/books/*/book.yaml')):
@@ -53,15 +52,7 @@ def is_english(slug):
 def norm(t): return re.sub(r'\s+', ' ', re.sub(r'[^\w\s]', '', t.lower())).strip()
 
 def post(payload):
-    last = None
-    for a in range(4):
-        try:
-            req = urllib.request.Request(OR_BASE + '/chat/completions', json.dumps(payload).encode(),
-                                         {'Authorization': 'Bearer ' + KEY, 'Content-Type': 'application/json'})
-            return json.load(urllib.request.urlopen(req, timeout=300))
-        except Exception as e:
-            last = e; time.sleep(2 ** a)
-    raise last
+    return llm.chat(payload)
 
 STOP = set("the a an and or of to in on for with is are was were be it its this that as at by from you your i we they their his her not no do does can could should would will may might if than so but about into more most very also each every any all de het een en van op te dat die zijn was voor met als aan bij uit naar om ook niet er je ik ze hij zij wat hoe kan worden wordt dan maar".split())
 def words(s):
@@ -77,7 +68,7 @@ CLASSIFY_ON = os.environ.get('CHAPTER_CLASSIFY', '1') == '1'
 def classify(paras):
     sample = '\n\n'.join(list(paras.values())[:40])[:9000]
     try:
-        r = post({'model': TIERS['flash'], 'messages': [{'role': 'user', 'content': CLASSIFY + sample}], 'max_tokens': 60})
+        r = post({'model': MODEL, 'messages': [{'role': 'user', 'content': CLASSIFY + sample}], 'max_tokens': 60})
         t = (r['choices'][0]['message']['content'] or '')
         m = re.search(r'ideas|mixed|story', t)
         return m.group(0) if m else 'mixed', r['usage'].get('cost', 0)
@@ -143,7 +134,7 @@ if __name__ == '__main__':
         jobs += [(slug, d) for d in m['documents'] if d.get('kind') == 'chapter']
     print('chapters', len(jobs), flush=True)
     res = {s: [] for s in BOOKS}; cost = drop = nat = 0; stat = {}
-    with concurrent.futures.ThreadPoolExecutor(4) as ex:
+    with concurrent.futures.ThreadPoolExecutor(llm.workers(4)) as ex:
         futs = {ex.submit(job, j): j for j in jobs}
         for n, f in enumerate(concurrent.futures.as_completed(futs), 1):
             try:
