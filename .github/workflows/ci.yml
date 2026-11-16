@@ -20,6 +20,6 @@ jobs:
           bad=$(git ls-files | grep -E '\.(epub|npz|jsonl|pdf|mobi|azw3?)$' | grep -v '^example/' || true)
           [ -z "$bad" ] || { echo "refusing: $bad"; exit 1; }
       - name: secret scan
-        uses: gitleaks/gitleaks-action@v2
+        uses: gitleaks/gitleaks-action@v3
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
