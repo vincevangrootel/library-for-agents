@@ -54,7 +54,7 @@ Rough totals: **100 books** at level 2 ≈ $0.30; at level 3 ≈ $15 to $25. Dis
 
 ## 🧠 Models
 
-One [OpenRouter](https://openrouter.ai) key covers all of them. Defaults are chosen for value; change them in `.library.env`.
+One [OpenRouter](https://openrouter.ai) key covers all of them. Defaults are chosen for value; change them in `.library.env`. Atoms and audit can also run on a Claude subscription (`LIBRARY_LLM=claude-code`) instead of pay-per-token; see [docs/MODELS.md](docs/MODELS.md#model-routes).
 
 | Job | Default | Stronger option |
 |---|---|---|
@@ -68,7 +68,7 @@ Details, alternatives and spend control: [docs/MODELS.md](docs/MODELS.md).
 
 - **This repo** holds tools only. No books, ever.
 - **Your library** is a folder you choose, created as a **private** Git repo: books, text, embeddings and atoms are versioned, so money spent is never lost. Push it to a private remote for backup. A plain folder works too (`--no-git`).
-- Only text sent for embeddings and atoms leaves your machine, to OpenRouter.
+- Only text sent for embeddings and atoms leaves your machine, to OpenRouter (or the route you chose in `LIBRARY_LLM`).
 
 More, including large libraries (Git LFS from about 100 books): [docs/WHERE-THINGS-LIVE.md](docs/WHERE-THINGS-LIVE.md).
 
