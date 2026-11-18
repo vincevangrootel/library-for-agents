@@ -50,7 +50,7 @@ Each level includes the ones below it. You can start low and go up later per boo
 
 **Recommendation:** level 2 for everything, level 3 for the non-fiction you care most about. Stories, memoirs and quote collections stay at level 2; atoms add little there.
 
-Rough totals: **100 books** at level 2 ≈ $0.30; at level 3 ≈ $15 to $25. Disk: about 5 MB per book at level 2, plus the EPUB.
+Rough totals: **100 books** at level 2 ≈ $0.30; at level 3 ≈ $15 to $25. Disk: about 7 MB per book at level 2, plus the EPUB.
 
 ## 🧠 Models
 
