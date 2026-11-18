@@ -37,8 +37,8 @@ EMBED_RATE = {'voyage-4-lite': 0.003, 'voyage-4-large': 0.016, 'text-embedding-3
 ATOM_RATE = {'deepseek/deepseek-v4.1-flash': 0.16, 'anthropic/claude-sonnet-5.5': 0.89, 'claude-sonnet-5-5': 0.89,
              'anthropic/claude-haiku-5.5': 0.20, 'claude-haiku-5-5': 0.20, 'gpt-5.6-luna': 0.35}   # sonnet+flash measured; others from list price
 AUDIT_COST = {'anthropic/claude-sonnet-5.5': 0.06, 'claude-sonnet-5-5': 0.06, 'gpt-5.6-terra': 0.07}     # per book: 24 sampled atoms judged
-EMBED_MB_PER_100K = 3.3                                  # float16, 1024 dims
-TEXT_MB_PER_100K = 1.0                                   # 02-text (chapters, manifest, figures)
+EMBED_MB_PER_100K = 3.5                                  # float16, 1024 dims
+TEXT_MB_PER_100K = 3.3                                   # 02-text, figures, cover, gate reports (measured)
 LEVEL_NAME = {1: 'Text', 2: 'Meaning', 3: 'Ideas'}
 
 
