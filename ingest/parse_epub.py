@@ -61,7 +61,7 @@ def cmd_inspect(a):
 def cmd_init(a):
     e = Epub(a.epub)
     bd = a.bookdir
-    for d in ('01-source', '02-text', '03-enrich', '04-assemble', '05-verify'):
+    for d in ('01-source', '02-text', '05-verify'):
         os.makedirs(os.path.join(bd, d), exist_ok=True)
     dst = os.path.join(bd, '01-source', os.path.basename(a.epub))
     if not os.path.exists(dst):
@@ -112,10 +112,10 @@ def cmd_init(a):
         language=(e.meta.get('language') or ['en'])[0],
         source=f'01-source/{os.path.basename(a.epub)}', source_sha256=sha256(open(a.epub, 'rb').read()),
         min_figure_px=80, decorative_images=[], parts=parts, classmap=classmap, documents=docs,
-        status=dict(parsed=False, verified=False, enriched=False))
+        status=dict(parsed=False, verified=False))
     with open(os.path.join(bd, 'book.yaml'), 'w') as fh:
         yaml.safe_dump(cfg, fh, sort_keys=False, allow_unicode=True, width=100)
-    tpl = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'assets', 'book-CONTEXT.template.md')
+    tpl = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'book-CONTEXT.template.md')
     ctx = os.path.join(bd, 'CONTEXT.md')
     if os.path.exists(tpl) and not os.path.exists(ctx):
         open(ctx, 'w').write(open(tpl).read().format(title=cfg['title'], author=cfg['author'], slug=cfg['slug']))

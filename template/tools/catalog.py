@@ -11,8 +11,7 @@ def main():
     for p in sorted(glob.glob(os.path.join(a.root, 'books', '*', 'book.yaml'))):
         bd = os.path.dirname(p)
         cfg = yaml.safe_load(open(p))
-        ov = os.path.join(bd, '03-enrich', 'book-overview.yaml')
-        ov = yaml.safe_load(open(ov)) if os.path.exists(ov) else {}
+        ov = {}
         man = os.path.join(bd, '02-text', 'manifest.json')
         n = len([d for d in json.load(open(man))['documents'] if d['kind'] == 'chapter']) if os.path.exists(man) else 0
         st = cfg.get('status', {})
@@ -24,7 +23,7 @@ def main():
         L.append(f"| {cfg['title']} | {cfg['author']} | {n} | {s} | [books/{slug}](books/{slug}/CONTEXT.md) |")
     L.append('')
     for cfg, ov, n, st, slug in rows:
-        L += [f"## {cfg['title']}", f"Author: {cfg['author']}. Folder: `books/{slug}/`. Start at `books/{slug}/04-assemble/INDEX.md`.", '']
+        L += [f"## {cfg['title']}", f"Author: {cfg['author']}. Folder: `books/{slug}/`. Start at `books/{slug}/CONTEXT.md`.", '']
         if ov.get('summary'):
             L += [ov['summary'].strip(), '']
         if ov.get('topics'):
