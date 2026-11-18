@@ -5,9 +5,9 @@ This repository holds the books. The scripts that make a book live in the `libra
 | | |
 |---|---|
 | Project | `library-for-agents` (https://github.com/vincevangrootel/library-for-agents) |
-| Ingest scripts | `ingest/`: `parse_epub.py` (inspect, init, build), `verify_text.py`, `verify_enrich.py`, `assemble.py`, `check.py`, `catalog.py` |
+| Ingest scripts | `ingest/`: `parse_epub.py` (inspect, init, build), `verify_text.py`, `check.py`, `catalog.py` |
 | Vector tools | `tools/`: embeddings, atoms, audit, gate, search |
-| Embedded here on purpose | `tools/search.py` and `tools/catalog.py`, so reading and searching work without the project |
+| Embedded here on purpose | `tools/search.py`, `tools/sections.py` and `tools/catalog.py`, so reading and keyword search work without the project |
 
 ## How stage contracts refer to it
 A stage says "run `parse_epub.py build ...`". Resolve the script as `<project>/ingest/parse_epub.py`. Never rewrite the scripts from memory: the gates are only trustworthy when they are the tested ones.

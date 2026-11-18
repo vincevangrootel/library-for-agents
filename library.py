@@ -38,7 +38,7 @@ ATOM_RATE = {'deepseek/deepseek-v4.1-flash': 0.16, 'anthropic/claude-sonnet-5.5'
              'anthropic/claude-haiku-5.5': 0.20, 'claude-haiku-5-5': 0.20, 'gpt-5.6-luna': 0.35}   # sonnet+flash measured; others from list price
 AUDIT_COST = {'anthropic/claude-sonnet-5.5': 0.06, 'claude-sonnet-5-5': 0.06, 'gpt-5.6-terra': 0.07}     # per book: 24 sampled atoms judged
 EMBED_MB_PER_100K = 3.3                                  # float16, 1024 dims
-TEXT_MB_PER_100K = 2.0                                   # 02-text + 04-assemble + chunks
+TEXT_MB_PER_100K = 1.0                                   # 02-text (chapters, manifest, figures)
 LEVEL_NAME = {1: 'Text', 2: 'Meaning', 3: 'Ideas'}
 
 
@@ -242,7 +242,6 @@ def cmd_add(a):
             if run([os.path.join(REPO, 'ingest', 'parse_epub.py'), 'build', bd], root, quiet=True).returncode: summary.append((slug, 'FAIL build')); continue
             if run([os.path.join(REPO, 'ingest', 'verify_text.py'), bd, '--report', '05-verify/text.json'], root, quiet=True).returncode:
                 summary.append((slug, 'FAIL text verification (see 05-verify/text.json)')); continue
-            run([os.path.join(REPO, 'ingest', 'assemble.py'), bd], root, quiet=True)
         else:
             say('  level 1: already done')
         lvl, no_atoms = set_level(bd, a.level, a.type)

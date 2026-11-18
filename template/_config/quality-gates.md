@@ -5,6 +5,5 @@ A book is only `verified` when all of these pass. Run them (script location: `_c
 2. Character equality: the non-whitespace character stream of every included document equals the EPUB text (after removing generated headings, ids, markup, figure blocks and declared lifted text).
 3. Immutability: body sha256 in front matter equals the manifest; a rebuild from `01-source` reproduces `02-text` byte for byte.
 4. Structure: sequential unique paragraph ids, figure counts and files, internal links resolve, no markup artifacts.
-5. Enrichment: schema complete, every cite exists in its own document, concept terms lexically grounded in cited paragraphs, no dash characters, every figure described.
-6. Independent review: a fresh reviewer (agent or human) who did not write the sidecars checks claims against cited paragraphs and figure descriptions against the images. Findings are fixed and the gates rerun.
-7. Determinism: `assemble.py` run twice gives identical output.
+5. Index (levels 2 and 3): `tools/book_gate.py` checks embeddings cover the text, atoms cite real paragraphs, a sampled audit passes and retrieval finds the book. See the project's `docs/GATE.md`.
+6. Determinism: `parse_epub.py build` run twice gives identical `02-text/` output (`check.py` proves it).
